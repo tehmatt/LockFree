@@ -10,7 +10,7 @@
  *
  * If the queue is full, an enqueue operation will fail.  For an enqueue
  * operation that will repeat until it succeeds, using bqueue_enq_repeat, which
- * is implemented using a bounded exponential backoff strategy.
+ * is implemented using `sched_yield`.
  *
  * [0] - A Simple, Fast and Scalable Non-Blocking Concurrent FIFO Queue for
  *       Shared Memory Multiprocessor Systems - Tsigas and Zhang
@@ -117,19 +117,13 @@ int bqueue_enq(bqueue q, void* data) {
     }
 }
 
-// Repeatedly attempt to add the element to the queue using a bounded
-// exponential backoff system.  This should be used if data must be enqueued
-// when the queue is full AND elements will be dequeued soon.
+// Repeatedly attempt to add the element to the queue, yielding to other threads
+// when unsuccessful. This should be used if data must be enqueued when the
+// queue is full AND elements will be dequeued soon.
 void bqueue_enq_repeat(bqueue q, void* data) {
-    for (size_t wait = 2; !bqueue_enq(q, data); wait *= 2) {
-        if (wait > 128) {
-            wait = 128;
-        }
-
-        struct timespec timer = {0, wait * 1000};
-
-        nanosleep(&timer, NULL);
-    }
+	while (!bqueue_enq(q, data)) {
+		sched_yield();
+	}
 }
 
 // Dequeue an element from the queue.

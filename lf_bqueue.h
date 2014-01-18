@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
+#include <sched.h>
 
 typedef struct bqueue* bqueue;
 
